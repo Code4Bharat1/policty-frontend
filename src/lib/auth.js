@@ -1,8 +1,10 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { users } from "@/data/mock";
+import { apiClient } from "@/services/apiClient";
 
 const STORAGE_KEY = "policycare.session";
+const TOKEN_KEY = "policycare.token";
 
 export const rolePermissions = {
   SUPER_ADMIN: [
@@ -48,10 +50,23 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signIn = useCallback(async (email, password) => {
-    await new Promise((r) => setTimeout(r, 450));
+    try {
+      // Try real backend auth first
+      const res = await apiClient.post("/auth/login", { email, password });
+      if (res && res.user && res.token) {
+        window.localStorage.setItem(TOKEN_KEY, res.token);
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(res.user));
+        setUser(res.user);
+        return res.user;
+      }
+    } catch (apiErr) {
+      console.warn("Backend auth unavailable or failed, attempting mock fallback:", apiErr.message);
+    }
+
+    // Graceful fallback to mock accounts
     const found = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
     if (!found || password.length < 4) {
-      throw new Error("Invalid email or password. Use a demo account listed below.");
+      throw new Error("Invalid email or password. Use demo accounts: admin@policycare.demo / agent@policycare.demo / customer@policycare.demo");
     }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(found));
     setUser(found);
@@ -60,11 +75,12 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(() => {
     window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(TOKEN_KEY);
     setUser(null);
   }, []);
 
   const can = useCallback(
-    (permission) => (user ? rolePermissions[user.role].includes(permission) : false),
+    (permission) => (user ? rolePermissions[user.role]?.includes(permission) ?? false : false),
     [user],
   );
 

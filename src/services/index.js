@@ -1,139 +1,284 @@
 import * as db from "@/data/mock";
+import { apiClient } from "./apiClient";
 
-const LATENCY = 220;
+const LATENCY = 150;
 
 function respond(data) {
   return new Promise((resolve) => setTimeout(() => resolve(data), LATENCY));
 }
 
+// Wrapper that calls the live API with fallback to mock data on error
+async function withFallback(apiPromise, mockFallback) {
+  try {
+    return await apiPromise;
+  } catch (error) {
+    console.warn("[Service] Backend call failed, using mock data:", error.message);
+    return typeof mockFallback === "function" ? mockFallback() : mockFallback;
+  }
+}
+
 export const catalogService = {
-  categories: () => respond(db.categories),
-  companies: () => respond(db.companies),
-  company: (id) => respond(db.companies.find((c) => c.id === id) ?? null),
-  products: (filters) => {
-    let list = db.products;
-    if (filters?.q) {
-      const q = filters.q.toLowerCase();
-      list = list.filter((p) => p.name.toLowerCase().includes(q) || p.tagline.toLowerCase().includes(q));
-    }
-    if (filters?.category && filters.category !== "all") list = list.filter((p) => p.category === filters.category);
-    if (filters?.companyId && filters.companyId !== "all") list = list.filter((p) => p.companyId === filters.companyId);
-    if (filters?.maxPremium) list = list.filter((p) => p.minPremium <= filters.maxPremium);
-    return respond(list);
-  },
-  product: (id) => respond(db.products.find((p) => p.id === id) ?? null),
-  faqs: () => respond(db.faqs),
-  blogPosts: () => respond(db.blogPosts),
-  blogPost: (id) => respond(db.blogPosts.find((b) => b.id === id) ?? null),
-  testimonials: () => respond(db.testimonials),
+  categories: () =>
+    withFallback(apiClient.get("/catalog/categories"), () => respond(db.categories)),
+
+  companies: () =>
+    withFallback(apiClient.get("/catalog/companies"), () => respond(db.companies)),
+
+  company: (id) =>
+    withFallback(
+      apiClient.get(`/catalog/companies/${id}`),
+      () => respond(db.companies.find((c) => c.id === id) ?? null)
+    ),
+
+  products: (filters) =>
+    withFallback(
+      apiClient.get("/catalog/products", { params: filters }),
+      () => {
+        let list = db.products;
+        if (filters?.q) {
+          const q = filters.q.toLowerCase();
+          list = list.filter(
+            (p) =>
+              p.name.toLowerCase().includes(q) || p.tagline.toLowerCase().includes(q)
+          );
+        }
+        if (filters?.category && filters.category !== "all")
+          list = list.filter((p) => p.category === filters.category);
+        if (filters?.companyId && filters.companyId !== "all")
+          list = list.filter((p) => p.companyId === filters.companyId);
+        if (filters?.maxPremium)
+          list = list.filter((p) => p.minPremium <= filters.maxPremium);
+        return respond(list);
+      }
+    ),
+
+  product: (id) =>
+    withFallback(
+      apiClient.get(`/catalog/products/${id}`),
+      () => respond(db.products.find((p) => p.id === id) ?? null)
+    ),
+
+  faqs: () => withFallback(apiClient.get("/catalog/faqs"), () => respond(db.faqs)),
+
+  blogPosts: () =>
+    withFallback(apiClient.get("/catalog/blogs"), () => respond(db.blogPosts)),
+
+  blogPost: (id) =>
+    withFallback(
+      apiClient.get(`/catalog/blogs/${id}`),
+      () => respond(db.blogPosts.find((b) => b.id === id) ?? null)
+    ),
+
+  testimonials: () =>
+    withFallback(apiClient.get("/catalog/testimonials"), () => respond(db.testimonials)),
 };
 
 export const customerService = {
-  list: (agentId) => respond(agentId ? db.customers.filter((c) => c.agentId === agentId) : db.customers),
-  get: (id) => respond(db.customers.find((c) => c.id === id) ?? null),
+  list: (agentId) =>
+    withFallback(
+      apiClient.get("/customers", { params: { agentId } }),
+      () => respond(agentId ? db.customers.filter((c) => c.agentId === agentId) : db.customers)
+    ),
+
+  get: (id) =>
+    withFallback(
+      apiClient.get(`/customers/${id}`),
+      () => respond(db.customers.find((c) => c.id === id) ?? null)
+    ),
 };
 
 export const agentService = {
-  list: () => respond(db.agents),
-  get: (id) => respond(db.agents.find((a) => a.id === id) ?? null),
+  list: () => withFallback(apiClient.get("/agents"), () => respond(db.agents)),
+
+  get: (id) =>
+    withFallback(
+      apiClient.get(`/agents/${id}`),
+      () => respond(db.agents.find((a) => a.id === id) ?? null)
+    ),
+
   performance: () =>
-    respond(
-      db.agents.map((a) => {
-        const pols = db.policies.filter((p) => p.agentId === a.id);
-        const lds = db.leads.filter((l) => l.agentId === a.id);
-        return {
-          agent: a,
-          policies: pols.length,
-          premium: pols.reduce((s, p) => s + p.premium, 0),
-          leads: lds.length,
-          conversions: lds.filter((l) => l.stage === "Converted").length,
-          claims: db.claims.filter((c) => c.agentId === a.id).length,
-          commission: db.commissions.filter((c) => c.agentId === a.id).reduce((s, c) => s + c.amount, 0),
-        };
-      }),
+    withFallback(
+      apiClient.get("/agents/performance"),
+      () =>
+        respond(
+          db.agents.map((a) => {
+            const pols = db.policies.filter((p) => p.agentId === a.id);
+            const lds = db.leads.filter((l) => l.agentId === a.id);
+            return {
+              agent: a,
+              policies: pols.length,
+              premium: pols.reduce((s, p) => s + p.premium, 0),
+              leads: lds.length,
+              conversions: lds.filter((l) => l.stage === "Converted").length,
+              claims: db.claims.filter((c) => c.agentId === a.id).length,
+              commission: db.commissions
+                .filter((c) => c.agentId === a.id)
+                .reduce((s, c) => s + c.amount, 0),
+            };
+          })
+        )
     ),
 };
 
 export const policyService = {
   list: (scope) =>
-    respond(
-      db.policies.filter(
-        (p) =>
-          (!scope?.customerId || p.customerId === scope.customerId) &&
-          (!scope?.agentId || p.agentId === scope.agentId),
-      ),
+    withFallback(
+      apiClient.get("/policies", { params: scope }),
+      () =>
+        respond(
+          db.policies.filter(
+            (p) =>
+              (!scope?.customerId || p.customerId === scope.customerId) &&
+              (!scope?.agentId || p.agentId === scope.agentId)
+          )
+        )
     ),
-  get: (id) => respond(db.policies.find((p) => p.id === id) ?? null),
+
+  get: (id) =>
+    withFallback(
+      apiClient.get(`/policies/${id}`),
+      () => respond(db.policies.find((p) => p.id === id) ?? null)
+    ),
+
   renewals: (scope) =>
-    respond(
-      db.policies.filter(
-        (p) =>
-          (p.status === "Expiring Soon" || p.status === "Expired") &&
-          (!scope?.customerId || p.customerId === scope.customerId) &&
-          (!scope?.agentId || p.agentId === scope.agentId),
-      ),
+    withFallback(
+      apiClient.get("/policies/renewals", { params: scope }),
+      () =>
+        respond(
+          db.policies.filter(
+            (p) =>
+              (p.status === "Expiring Soon" || p.status === "Expired") &&
+              (!scope?.customerId || p.customerId === scope.customerId) &&
+              (!scope?.agentId || p.agentId === scope.agentId)
+          )
+        )
     ),
 };
 
 export const claimService = {
   list: (scope) =>
-    respond(
-      db.claims.filter(
-        (c) =>
-          (!scope?.customerId || c.customerId === scope.customerId) &&
-          (!scope?.agentId || c.agentId === scope.agentId),
-      ),
+    withFallback(
+      apiClient.get("/claims", { params: scope }),
+      () =>
+        respond(
+          db.claims.filter(
+            (c) =>
+              (!scope?.customerId || c.customerId === scope.customerId) &&
+              (!scope?.agentId || c.agentId === scope.agentId)
+          )
+        )
     ),
-  get: (id) => respond(db.claims.find((c) => c.id === id) ?? null),
+
+  get: (id) =>
+    withFallback(
+      apiClient.get(`/claims/${id}`),
+      () => respond(db.claims.find((c) => c.id === id) ?? null)
+    ),
 };
 
 export const quoteService = {
   list: (scope) =>
-    respond(
-      db.quotes.filter(
-        (q) =>
-          (!scope?.customerId || q.customerId === scope.customerId) &&
-          (!scope?.agentId || q.agentId === scope.agentId),
-      ),
+    withFallback(
+      apiClient.get("/quotes", { params: scope }),
+      () =>
+        respond(
+          db.quotes.filter(
+            (q) =>
+              (!scope?.customerId || q.customerId === scope.customerId) &&
+              (!scope?.agentId || q.agentId === scope.agentId)
+          )
+        )
     ),
-  get: (id) => respond(db.quotes.find((q) => q.id === id) ?? null),
+
+  get: (id) =>
+    withFallback(
+      apiClient.get(`/quotes/${id}`),
+      () => respond(db.quotes.find((q) => q.id === id) ?? null)
+    ),
+
   request: (payload) =>
-    respond({ ok: true, quoteNumber: `QTE-2026-${Math.floor(Math.random() * 9000) + 1000}`, ...payload }),
+    withFallback(
+      apiClient.post("/quotes/request", payload),
+      () =>
+        respond({
+          ok: true,
+          quoteNumber: `QTE-2026-${Math.floor(Math.random() * 9000) + 1000}`,
+          ...payload,
+        })
+    ),
 };
 
 export const paymentService = {
-  list: (scope) => respond(db.payments.filter((p) => !scope?.customerId || p.customerId === scope.customerId)),
+  list: (scope) =>
+    withFallback(
+      apiClient.get("/payments", { params: scope }),
+      () => respond(db.payments.filter((p) => !scope?.customerId || p.customerId === scope.customerId))
+    ),
 };
 
 export const leadService = {
-  list: (agentId) => respond(agentId ? db.leads.filter((l) => l.agentId === agentId) : db.leads),
-  get: (id) => respond(db.leads.find((l) => l.id === id) ?? null),
+  list: (agentId) =>
+    withFallback(
+      apiClient.get("/leads", { params: { agentId } }),
+      () => respond(agentId ? db.leads.filter((l) => l.agentId === agentId) : db.leads)
+    ),
+
+  get: (id) =>
+    withFallback(
+      apiClient.get(`/leads/${id}`),
+      () => respond(db.leads.find((l) => l.id === id) ?? null)
+    ),
 };
 
 export const followUpService = {
-  list: (agentId) => respond(agentId ? db.followUps.filter((f) => f.agentId === agentId) : db.followUps),
+  list: (agentId) =>
+    withFallback(
+      apiClient.get("/follow-ups", { params: { agentId } }),
+      () => respond(agentId ? db.followUps.filter((f) => f.agentId === agentId) : db.followUps)
+    ),
 };
 
 export const commissionService = {
-  list: (agentId) => respond(agentId ? db.commissions.filter((c) => c.agentId === agentId) : db.commissions),
+  list: (agentId) =>
+    withFallback(
+      apiClient.get("/commissions", { params: { agentId } }),
+      () => respond(agentId ? db.commissions.filter((c) => c.agentId === agentId) : db.commissions)
+    ),
 };
 
 export const documentService = {
-  list: (customerId) => respond(customerId ? db.documents.filter((d) => d.customerId === customerId) : db.documents),
+  list: (customerId) =>
+    withFallback(
+      apiClient.get("/documents", { params: { customerId } }),
+      () => respond(customerId ? db.documents.filter((d) => d.customerId === customerId) : db.documents)
+    ),
 };
 
 export const notificationService = {
-  list: (scope) => respond(db.notifications.filter((n) => n.userScope === scope || n.userScope === "ALL")),
+  list: (scope) =>
+    withFallback(
+      apiClient.get("/notifications", { params: { scope } }),
+      () => respond(db.notifications.filter((n) => n.userScope === scope || n.userScope === "ALL"))
+    ),
 };
 
 export const auditService = {
-  list: () => respond(db.auditLogs),
+  list: () =>
+    withFallback(
+      apiClient.get("/reports/audit-logs"),
+      () => respond(db.auditLogs)
+    ),
 };
 
 export const reportService = {
-  series: () => respond(db.monthlySeries),
+  series: () =>
+    withFallback(
+      apiClient.get("/reports/series"),
+      () => respond(db.monthlySeries)
+    ),
 };
 
+// Synchronous formatters and lookup helpers
 export function nameOfCustomer(id) {
   return db.customers.find((c) => c.id === id)?.name ?? "—";
 }
