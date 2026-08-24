@@ -30,7 +30,7 @@ export default function HomePage() {
         <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-24">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/5 px-3 py-1 text-xs font-semibold">
-              <BadgeCheck className="size-3.5 text-accent" aria-hidden /> 5 insurers · 10 products · 96.4% average settlement
+              <BadgeCheck className="size-3.5 text-accent" aria-hidden /> Digital Insurance Advisory & Operations Platform
             </span>
             <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl">
               Every policy, renewal and claim in one operations-grade dashboard.
@@ -48,10 +48,10 @@ export default function HomePage() {
               </Button>
             </div>
             <dl className="mt-10 grid max-w-lg grid-cols-3 gap-6 border-t border-primary-foreground/15 pt-6">
-              {[["48,000+", "Policies serviced"], ["12,400", "Cashless hospitals"], ["4 hrs", "Median claim response"]].map(([v, l]) => (
+              {[["100% Digital", "Unified Policy Portfolio"], ["Dedicated Advisor", "End-to-End Claim Support"], ["Fast Processing", "Instant Document Vault"]].map(([v, l]) => (
                 <div key={l}>
-                  <dt className="text-2xl font-bold">{v}</dt>
-                  <dd className="text-xs text-primary-foreground/70">{l}</dd>
+                  <dt className="text-xl font-bold">{v}</dt>
+                  <dd className="text-xs text-primary-foreground/70 mt-0.5">{l}</dd>
                 </div>
               ))}
             </dl>
@@ -91,45 +91,47 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured plans */}
-      <section className="border-y border-border bg-card">
-        <div className="mx-auto w-full max-w-7xl px-4 py-16 lg:px-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-eyebrow">Featured plans</p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight">Popular with Policy Care customers</h2>
+      {/* Featured plans (only shown when real products exist) */}
+      {featured.length > 0 && (
+        <section className="border-y border-border bg-card">
+          <div className="mx-auto w-full max-w-7xl px-4 py-16 lg:px-8">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-eyebrow">Featured plans</p>
+                <h2 className="mt-2 text-3xl font-bold tracking-tight">Published insurance plans</h2>
+              </div>
+              <Button variant="outline" asChild><Link href="/products">Compare all plans</Link></Button>
             </div>
-            <Button variant="outline" asChild><Link href="/products">Compare all plans</Link></Button>
-          </div>
-          <div className="mt-8 grid gap-5 lg:grid-cols-3">
-            {featured.map((p) => (
-              <article key={p.id} className="surface flex flex-col p-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-eyebrow">{p.planType}</span>
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-warning-foreground">
-                    <Star className="size-3.5 fill-current text-warning" aria-hidden /> {p.rating}
-                  </span>
-                </div>
-                <h3 className="mt-3 text-lg font-bold leading-snug">{p.name}</h3>
-                <p className="mt-2 flex-1 text-sm text-muted-foreground">{p.tagline}</p>
-                <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-4">
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Starting at</dt>
-                    <dd className="text-lg font-bold">{inr(p.minPremium)}<span className="text-xs font-medium text-muted-foreground">/yr</span></dd>
+            <div className="mt-8 grid gap-5 lg:grid-cols-3">
+              {featured.map((p) => (
+                <article key={p.id} className="surface flex flex-col p-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-eyebrow">{p.planType}</span>
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-warning-foreground">
+                      <Star className="size-3.5 fill-current text-warning" aria-hidden /> {p.rating}
+                    </span>
                   </div>
-                  <div>
-                    <dt className="text-xs text-muted-foreground">Cover up to</dt>
-                    <dd className="text-lg font-bold">{inr(p.maxCoverage, true)}</dd>
-                  </div>
-                </dl>
-                <Button className="mt-5" asChild>
-                  <Link href={`/products/${p.id}`}>View plan details</Link>
-                </Button>
-              </article>
-            ))}
+                  <h3 className="mt-3 text-lg font-bold leading-snug">{p.name}</h3>
+                  <p className="mt-2 flex-1 text-sm text-muted-foreground">{p.tagline}</p>
+                  <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-4">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Starting at</dt>
+                      <dd className="text-lg font-bold">{inr(p.minPremium)}<span className="text-xs font-medium text-muted-foreground">/yr</span></dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Cover up to</dt>
+                      <dd className="text-lg font-bold">{inr(p.maxCoverage, true)}</dd>
+                    </div>
+                  </dl>
+                  <Button className="mt-5" asChild>
+                    <Link href={`/products/${p.id}`}>View plan details</Link>
+                  </Button>
+                </article>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Why choose */}
       <section className="mx-auto w-full max-w-7xl px-4 py-16 lg:px-8">
@@ -192,7 +194,7 @@ export default function HomePage() {
             </thead>
             <tbody>
               {[
-                ["Multi-insurer comparison", "Yes, 5 insurers", "Single insurer", "Limited"],
+                ["Multi-insurer comparison", "Multi-Insurer Compare", "Single insurer", "Limited"],
                 ["Digital policy vault", "Yes", "Partial", "No"],
                 ["Renewal reminders", "45/30/15/7 days", "Email only", "Manual"],
                 ["Claim assistance", "Dedicated advisor", "Call centre", "Varies"],
@@ -210,42 +212,46 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="border-y border-border bg-card">
-        <div className="mx-auto w-full max-w-7xl px-4 py-16 lg:px-8">
-          <p className="text-eyebrow">Customer stories</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight">What policyholders say</h2>
-          <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {(testimonials ?? []).map((t) => (
-              <figure key={t.id} className="surface flex h-full flex-col p-6">
-                <QuoteIcon className="size-5 text-accent" aria-hidden />
-                <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-foreground">{t.quote}</blockquote>
-                <figcaption className="mt-4 border-t border-border pt-3 text-sm">
-                  <span className="block font-semibold">{t.name}</span>
-                  <span className="block text-xs text-muted-foreground">{t.role} · {t.city}</span>
-                </figcaption>
-              </figure>
-            ))}
+      {/* Testimonials (only shown when real testimonials exist) */}
+      {(testimonials ?? []).length > 0 && (
+        <section className="border-y border-border bg-card">
+          <div className="mx-auto w-full max-w-7xl px-4 py-16 lg:px-8">
+            <p className="text-eyebrow">Customer stories</p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight">What policyholders say</h2>
+            <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {(testimonials ?? []).map((t) => (
+                <figure key={t.id} className="surface flex h-full flex-col p-6">
+                  <QuoteIcon className="size-5 text-accent" aria-hidden />
+                  <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-foreground">{t.quote}</blockquote>
+                  <figcaption className="mt-4 border-t border-border pt-3 text-sm">
+                    <span className="block font-semibold">{t.name}</span>
+                    <span className="block text-xs text-muted-foreground">{t.role} · {t.city}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* FAQ */}
-      <section className="mx-auto w-full max-w-3xl px-4 py-16 lg:px-8">
-        <p className="text-eyebrow">Frequently asked</p>
-        <h2 className="mt-2 text-3xl font-bold tracking-tight">Questions before you start</h2>
-        <Accordion type="single" collapsible className="mt-6">
-          {(faqs ?? []).slice(0, 6).map((f) => (
-            <AccordionItem key={f.id} value={f.id}>
-              <AccordionTrigger className="text-left text-sm font-semibold">{f.question}</AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground">{f.answer}</AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-        <div className="mt-6">
-          <Button variant="outline" asChild><Link href="/faq">See all FAQs</Link></Button>
-        </div>
-      </section>
+      {(faqs ?? []).length > 0 && (
+        <section className="mx-auto w-full max-w-3xl px-4 py-16 lg:px-8">
+          <p className="text-eyebrow">Frequently asked</p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight">Questions before you start</h2>
+          <Accordion type="single" collapsible className="mt-6">
+            {(faqs ?? []).slice(0, 6).map((f) => (
+              <AccordionItem key={f.id} value={f.id}>
+                <AccordionTrigger className="text-left text-sm font-semibold">{f.question}</AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground">{f.answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+          <div className="mt-6">
+            <Button variant="outline" asChild><Link href="/faq">See all FAQs</Link></Button>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="bg-primary text-primary-foreground">
