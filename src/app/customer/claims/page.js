@@ -20,16 +20,27 @@ export default function CustomerClaimsPage() {
   const [open, setOpen] = useState(false);
   const scope = { customerId: customerId ?? "" };
 
-  const { data, isLoading } = useQuery({ queryKey: ["claims", customerId], queryFn: () => claimService.list(scope), enabled: !!customerId });
+  const { data, isLoading, refetch } = useQuery({ queryKey: ["claims", customerId], queryFn: () => claimService.list(scope), enabled: !!customerId });
   const { data: policies } = useQuery({ queryKey: ["policies", customerId], queryFn: () => policyService.list(scope), enabled: !!customerId });
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
 
   const onSubmit = handleSubmit(async (values) => {
-    await new Promise((r) => setTimeout(r, 500));
-    toast.success(`Claim registered for ${policyNumberOf(values.policyId) || "your policy"}. Our desk will contact you within 24 hours.`);
-    reset();
-    setOpen(false);
+    try {
+      await claimService.submit({
+        policyId: values.policyId,
+        type: values.type,
+        amount: parseFloat(values.amount),
+        description: values.description,
+        customerId,
+      });
+      toast.success(`Claim registered for ${policyNumberOf(values.policyId) || "your policy"}. Our desk will contact you within 24 hours.`);
+      reset();
+      setOpen(false);
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to submit claim.");
+    }
   });
 
   return (

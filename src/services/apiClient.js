@@ -7,8 +7,10 @@ export async function request(endpoint, options = {}) {
       ? window.localStorage.getItem("policycare.token")
       : null;
 
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
   const headers = {
-    "Content-Type": "application/json",
+    ...(!isFormData ? { "Content-Type": "application/json" } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
@@ -27,26 +29,55 @@ export async function request(endpoint, options = {}) {
     }
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  const json = await response.json();
-
-  if (!response.ok) {
-    throw new Error(json.message || `API request failed with status ${response.status}`);
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (netErr) {
+    throw new Error(`Network connection error: ${netErr.message}`);
   }
 
+  let json;
+  try {
+    json = await response.json();
+  } catch {
+    json = null;
+  }
+
+  if (!response.ok) {
+    const errorMsg =
+      json?.message ||
+      (json?.errors && json.errors[0]?.message) ||
+      `API request failed with status ${response.status}`;
+    throw new Error(errorMsg);
+  }
+
+  if (json === null) return {};
   return json.data !== undefined ? json.data : json;
 }
 
 export const apiClient = {
   get: (endpoint, options = {}) => request(endpoint, { ...options, method: "GET" }),
   post: (endpoint, body, options = {}) =>
-    request(endpoint, { ...options, method: "POST", body: JSON.stringify(body) }),
+    request(endpoint, {
+      ...options,
+      method: "POST",
+      body: typeof FormData !== "undefined" && body instanceof FormData ? body : JSON.stringify(body),
+    }),
   put: (endpoint, body, options = {}) =>
-    request(endpoint, { ...options, method: "PUT", body: JSON.stringify(body) }),
+    request(endpoint, {
+      ...options,
+      method: "PUT",
+      body: typeof FormData !== "undefined" && body instanceof FormData ? body : JSON.stringify(body),
+    }),
+  patch: (endpoint, body, options = {}) =>
+    request(endpoint, {
+      ...options,
+      method: "PATCH",
+      body: typeof FormData !== "undefined" && body instanceof FormData ? body : JSON.stringify(body),
+    }),
   delete: (endpoint, options = {}) =>
     request(endpoint, { ...options, method: "DELETE" }),
 };

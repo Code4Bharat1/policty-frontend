@@ -7,21 +7,13 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/lib/auth";
-
+import { useAuth, homeForRole } from "@/lib/auth";
 
 const demo = [
   { role: "Administrator", email: "admin@policycare.demo" },
   { role: "Advisor / Agent", email: "agent@policycare.demo" },
   { role: "Customer", email: "customer@policycare.demo" },
 ];
-
-const homeForRole = {
-  SUPER_ADMIN: "/admin/dashboard",
-  ADMIN: "/admin/dashboard",
-  AGENT: "/agent/dashboard",
-  CUSTOMER: "/customer/dashboard",
-};
 
 export default function LoginPage() {
   const { signIn, user, ready } = useAuth();
@@ -94,6 +86,12 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <><Loader2 className="size-4 animate-spin" aria-hidden /> Signing in…</> : "Sign in"}
             </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              Don't have an account?{" "}
+              <Link href="/register" className="font-semibold text-secondary hover:underline">
+                Create account
+              </Link>
+            </div>
           </form>
 
           <div className="mt-8 rounded-lg border border-dashed border-border bg-card p-4">

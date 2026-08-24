@@ -1,6 +1,5 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { users } from "@/data/mock";
 import { apiClient } from "@/services/apiClient";
 
 const STORAGE_KEY = "policycare.session";
@@ -42,35 +41,26 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setUser(JSON.parse(raw));
+      if (raw) {
+        setUser(JSON.parse(raw));
+      }
     } catch {
       /* ignore corrupt session */
+    } finally {
+      setReady(true);
     }
-    setReady(true);
   }, []);
 
   const signIn = useCallback(async (email, password) => {
-    try {
-      // Try real backend auth first
-      const res = await apiClient.post("/auth/login", { email, password });
-      if (res && res.user && res.token) {
-        window.localStorage.setItem(TOKEN_KEY, res.token);
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(res.user));
-        setUser(res.user);
-        return res.user;
-      }
-    } catch (apiErr) {
-      console.warn("Backend auth unavailable or failed, attempting mock fallback:", apiErr.message);
+    const res = await apiClient.post("/auth/login", { email, password });
+    if (!res || !res.user || !res.token) {
+      throw new Error("Invalid response from authentication server");
     }
 
-    // Graceful fallback to mock accounts
-    const found = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (!found || password.length < 4) {
-      throw new Error("Invalid email or password. Use demo accounts: admin@policycare.demo / agent@policycare.demo / customer@policycare.demo");
-    }
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(found));
-    setUser(found);
-    return found;
+    window.localStorage.setItem(TOKEN_KEY, res.token);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(res.user));
+    setUser(res.user);
+    return res.user;
   }, []);
 
   const signOut = useCallback(() => {
@@ -81,7 +71,7 @@ export function AuthProvider({ children }) {
 
   const can = useCallback(
     (permission) => (user ? rolePermissions[user.role]?.includes(permission) ?? false : false),
-    [user],
+    [user]
   );
 
   const value = useMemo(() => ({ user, ready, signIn, signOut, can }), [user, ready, signIn, signOut, can]);

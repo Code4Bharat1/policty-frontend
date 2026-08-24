@@ -1,299 +1,263 @@
-import * as db from "@/data/mock";
 import { apiClient } from "./apiClient";
 
-const LATENCY = 150;
+// In-memory entity registries for instantaneous UI lookups
+const customerCache = new Map();
+const agentCache = new Map();
+const productCache = new Map();
+const companyCache = new Map();
+const policyCache = new Map();
 
-function respond(data) {
-  return new Promise((resolve) => setTimeout(() => resolve(data), LATENCY));
-}
-
-// Wrapper that calls the live API with fallback to mock data on error
-async function withFallback(apiPromise, mockFallback) {
-  try {
-    return await apiPromise;
-  } catch (error) {
-    console.warn("[Service] Backend call failed, using mock data:", error.message);
-    return typeof mockFallback === "function" ? mockFallback() : mockFallback;
+function registerEntities(items, cache) {
+  if (Array.isArray(items)) {
+    items.forEach((item) => {
+      if (item?.id) cache.set(item.id, item);
+    });
+  } else if (items?.id) {
+    cache.set(items.id, items);
   }
 }
 
 export const catalogService = {
-  categories: () =>
-    withFallback(apiClient.get("/catalog/categories"), () => respond(db.categories)),
+  categories: () => apiClient.get("/catalog/categories"),
 
   companies: () =>
-    withFallback(apiClient.get("/catalog/companies"), () => respond(db.companies)),
+    apiClient.get("/catalog/companies").then((res) => {
+      registerEntities(res, companyCache);
+      return res;
+    }),
 
   company: (id) =>
-    withFallback(
-      apiClient.get(`/catalog/companies/${id}`),
-      () => respond(db.companies.find((c) => c.id === id) ?? null)
-    ),
+    apiClient.get(`/catalog/companies/${id}`).then((res) => {
+      registerEntities(res, companyCache);
+      return res;
+    }),
 
   products: (filters) =>
-    withFallback(
-      apiClient.get("/catalog/products", { params: filters }),
-      () => {
-        let list = db.products;
-        if (filters?.q) {
-          const q = filters.q.toLowerCase();
-          list = list.filter(
-            (p) =>
-              p.name.toLowerCase().includes(q) || p.tagline.toLowerCase().includes(q)
-          );
-        }
-        if (filters?.category && filters.category !== "all")
-          list = list.filter((p) => p.category === filters.category);
-        if (filters?.companyId && filters.companyId !== "all")
-          list = list.filter((p) => p.companyId === filters.companyId);
-        if (filters?.maxPremium)
-          list = list.filter((p) => p.minPremium <= filters.maxPremium);
-        return respond(list);
-      }
-    ),
+    apiClient.get("/catalog/products", { params: filters }).then((res) => {
+      registerEntities(res, productCache);
+      return res;
+    }),
 
   product: (id) =>
-    withFallback(
-      apiClient.get(`/catalog/products/${id}`),
-      () => respond(db.products.find((p) => p.id === id) ?? null)
-    ),
+    apiClient.get(`/catalog/products/${id}`).then((res) => {
+      registerEntities(res, productCache);
+      return res;
+    }),
 
-  faqs: () => withFallback(apiClient.get("/catalog/faqs"), () => respond(db.faqs)),
+  faqs: () => apiClient.get("/catalog/faqs"),
 
-  blogPosts: () =>
-    withFallback(apiClient.get("/catalog/blogs"), () => respond(db.blogPosts)),
+  blogPosts: () => apiClient.get("/catalog/blogs"),
 
-  blogPost: (id) =>
-    withFallback(
-      apiClient.get(`/catalog/blogs/${id}`),
-      () => respond(db.blogPosts.find((b) => b.id === id) ?? null)
-    ),
+  blogPost: (id) => apiClient.get(`/catalog/blogs/${id}`),
 
-  testimonials: () =>
-    withFallback(apiClient.get("/catalog/testimonials"), () => respond(db.testimonials)),
+  testimonials: () => apiClient.get("/catalog/testimonials"),
 };
 
 export const customerService = {
   list: (agentId) =>
-    withFallback(
-      apiClient.get("/customers", { params: { agentId } }),
-      () => respond(agentId ? db.customers.filter((c) => c.agentId === agentId) : db.customers)
-    ),
+    apiClient.get("/customers", { params: { agentId } }).then((res) => {
+      registerEntities(res, customerCache);
+      return res;
+    }),
 
   get: (id) =>
-    withFallback(
-      apiClient.get(`/customers/${id}`),
-      () => respond(db.customers.find((c) => c.id === id) ?? null)
-    ),
+    apiClient.get(`/customers/${id}`).then((res) => {
+      registerEntities(res, customerCache);
+      return res;
+    }),
+
+  create: (data) =>
+    apiClient.post("/customers", data).then((res) => {
+      registerEntities(res, customerCache);
+      return res;
+    }),
+
+  update: (id, data) =>
+    apiClient.put(`/customers/${id}`, data).then((res) => {
+      registerEntities(res, customerCache);
+      return res;
+    }),
+
+  delete: (id) => apiClient.delete(`/customers/${id}`),
 };
 
 export const agentService = {
-  list: () => withFallback(apiClient.get("/agents"), () => respond(db.agents)),
+  list: () =>
+    apiClient.get("/agents").then((res) => {
+      registerEntities(res, agentCache);
+      return res;
+    }),
 
   get: (id) =>
-    withFallback(
-      apiClient.get(`/agents/${id}`),
-      () => respond(db.agents.find((a) => a.id === id) ?? null)
-    ),
+    apiClient.get(`/agents/${id}`).then((res) => {
+      registerEntities(res, agentCache);
+      return res;
+    }),
 
-  performance: () =>
-    withFallback(
-      apiClient.get("/agents/performance"),
-      () =>
-        respond(
-          db.agents.map((a) => {
-            const pols = db.policies.filter((p) => p.agentId === a.id);
-            const lds = db.leads.filter((l) => l.agentId === a.id);
-            return {
-              agent: a,
-              policies: pols.length,
-              premium: pols.reduce((s, p) => s + p.premium, 0),
-              leads: lds.length,
-              conversions: lds.filter((l) => l.stage === "Converted").length,
-              claims: db.claims.filter((c) => c.agentId === a.id).length,
-              commission: db.commissions
-                .filter((c) => c.agentId === a.id)
-                .reduce((s, c) => s + c.amount, 0),
-            };
-          })
-        )
-    ),
+  create: (data) =>
+    apiClient.post("/agents", data).then((res) => {
+      registerEntities(res, agentCache);
+      return res;
+    }),
+
+  update: (id, data) =>
+    apiClient.put(`/agents/${id}`, data).then((res) => {
+      registerEntities(res, agentCache);
+      return res;
+    }),
+
+  delete: (id) => apiClient.delete(`/agents/${id}`),
+
+  performance: () => apiClient.get("/agents/performance"),
 };
 
 export const policyService = {
   list: (scope) =>
-    withFallback(
-      apiClient.get("/policies", { params: scope }),
-      () =>
-        respond(
-          db.policies.filter(
-            (p) =>
-              (!scope?.customerId || p.customerId === scope.customerId) &&
-              (!scope?.agentId || p.agentId === scope.agentId)
-          )
-        )
-    ),
+    apiClient.get("/policies", { params: scope }).then((res) => {
+      registerEntities(res, policyCache);
+      return res;
+    }),
 
   get: (id) =>
-    withFallback(
-      apiClient.get(`/policies/${id}`),
-      () => respond(db.policies.find((p) => p.id === id) ?? null)
-    ),
+    apiClient.get(`/policies/${id}`).then((res) => {
+      registerEntities(res, policyCache);
+      return res;
+    }),
 
-  renewals: (scope) =>
-    withFallback(
-      apiClient.get("/policies/renewals", { params: scope }),
-      () =>
-        respond(
-          db.policies.filter(
-            (p) =>
-              (p.status === "Expiring Soon" || p.status === "Expired") &&
-              (!scope?.customerId || p.customerId === scope.customerId) &&
-              (!scope?.agentId || p.agentId === scope.agentId)
-          )
-        )
-    ),
+  renewals: (scope) => apiClient.get("/policies/renewals", { params: scope }),
+
+  create: (data) =>
+    apiClient.post("/policies", data).then((res) => {
+      registerEntities(res, policyCache);
+      return res;
+    }),
+
+  update: (id, data) =>
+    apiClient.put(`/policies/${id}`, data).then((res) => {
+      registerEntities(res, policyCache);
+      return res;
+    }),
+
+  updateStatus: (id, status) => apiClient.put(`/policies/${id}/status`, { status }),
+
+  delete: (id) => apiClient.delete(`/policies/${id}`),
 };
 
 export const claimService = {
-  list: (scope) =>
-    withFallback(
-      apiClient.get("/claims", { params: scope }),
-      () =>
-        respond(
-          db.claims.filter(
-            (c) =>
-              (!scope?.customerId || c.customerId === scope.customerId) &&
-              (!scope?.agentId || c.agentId === scope.agentId)
-          )
-        )
-    ),
+  list: (scope) => apiClient.get("/claims", { params: scope }),
 
-  get: (id) =>
-    withFallback(
-      apiClient.get(`/claims/${id}`),
-      () => respond(db.claims.find((c) => c.id === id) ?? null)
-    ),
+  get: (id) => apiClient.get(`/claims/${id}`),
+
+  submit: (payload) => apiClient.post("/claims", payload),
+
+  update: (id, data) => apiClient.put(`/claims/${id}`, data),
+
+  updateStatus: (id, status, remarks, approvedAmount) =>
+    apiClient.put(`/claims/${id}/status`, { status, remarks, approvedAmount }),
+
+  delete: (id) => apiClient.delete(`/claims/${id}`),
 };
 
 export const quoteService = {
-  list: (scope) =>
-    withFallback(
-      apiClient.get("/quotes", { params: scope }),
-      () =>
-        respond(
-          db.quotes.filter(
-            (q) =>
-              (!scope?.customerId || q.customerId === scope.customerId) &&
-              (!scope?.agentId || q.agentId === scope.agentId)
-          )
-        )
-    ),
+  list: (scope) => apiClient.get("/quotes", { params: scope }),
 
-  get: (id) =>
-    withFallback(
-      apiClient.get(`/quotes/${id}`),
-      () => respond(db.quotes.find((q) => q.id === id) ?? null)
-    ),
+  get: (id) => apiClient.get(`/quotes/${id}`),
 
-  request: (payload) =>
-    withFallback(
-      apiClient.post("/quotes/request", payload),
-      () =>
-        respond({
-          ok: true,
-          quoteNumber: `QTE-2026-${Math.floor(Math.random() * 9000) + 1000}`,
-          ...payload,
-        })
-    ),
+  request: (payload) => apiClient.post("/quotes/request", payload),
 };
 
 export const paymentService = {
-  list: (scope) =>
-    withFallback(
-      apiClient.get("/payments", { params: scope }),
-      () => respond(db.payments.filter((p) => !scope?.customerId || p.customerId === scope.customerId))
-    ),
+  list: (scope) => apiClient.get("/payments", { params: scope }),
+  create: (payload) => apiClient.post("/payments", payload),
 };
 
 export const leadService = {
-  list: (agentId) =>
-    withFallback(
-      apiClient.get("/leads", { params: { agentId } }),
-      () => respond(agentId ? db.leads.filter((l) => l.agentId === agentId) : db.leads)
-    ),
-
-  get: (id) =>
-    withFallback(
-      apiClient.get(`/leads/${id}`),
-      () => respond(db.leads.find((l) => l.id === id) ?? null)
-    ),
+  list: (agentId) => apiClient.get("/leads", { params: { agentId } }),
+  get: (id) => apiClient.get(`/leads/${id}`),
+  create: (data) => apiClient.post("/leads", data),
+  update: (id, data) => apiClient.put(`/leads/${id}`, data),
 };
 
 export const followUpService = {
-  list: (agentId) =>
-    withFallback(
-      apiClient.get("/follow-ups", { params: { agentId } }),
-      () => respond(agentId ? db.followUps.filter((f) => f.agentId === agentId) : db.followUps)
-    ),
+  list: (agentId) => apiClient.get("/follow-ups", { params: { agentId } }),
+  create: (data) => apiClient.post("/follow-ups", data),
+  update: (id, data) => apiClient.put(`/follow-ups/${id}`, data),
 };
 
 export const commissionService = {
-  list: (agentId) =>
-    withFallback(
-      apiClient.get("/commissions", { params: { agentId } }),
-      () => respond(agentId ? db.commissions.filter((c) => c.agentId === agentId) : db.commissions)
-    ),
+  list: (agentId) => apiClient.get("/commissions", { params: { agentId } }),
 };
 
 export const documentService = {
-  list: (customerId) =>
-    withFallback(
-      apiClient.get("/documents", { params: { customerId } }),
-      () => respond(customerId ? db.documents.filter((d) => d.customerId === customerId) : db.documents)
-    ),
+  list: (customerId) => apiClient.get("/documents", { params: { customerId } }),
+  upload: (formData) => apiClient.post("/documents/upload", formData),
+  delete: (id) => apiClient.delete(`/documents/${id}`),
 };
 
 export const notificationService = {
-  list: (scope) =>
-    withFallback(
-      apiClient.get("/notifications", { params: { scope } }),
-      () => respond(db.notifications.filter((n) => n.userScope === scope || n.userScope === "ALL"))
-    ),
+  list: (scope) => apiClient.get("/notifications", { params: { scope } }),
+  markRead: (id) => apiClient.put(`/notifications/${id}/read`),
+  markAllRead: () => apiClient.put("/notifications/read-all"),
 };
 
 export const auditService = {
-  list: () =>
-    withFallback(
-      apiClient.get("/reports/audit-logs"),
-      () => respond(db.auditLogs)
-    ),
+  list: (params) => apiClient.get("/audit-logs", { params }),
+};
+
+export const enquiryService = {
+  submit: (data) => apiClient.post("/enquiries", data),
+  list: (params) => apiClient.get("/enquiries", { params }),
+  get: (id) => apiClient.get(`/enquiries/${id}`),
+  update: (id, data) => apiClient.patch(`/enquiries/${id}`, data),
+  delete: (id) => apiClient.delete(`/enquiries/${id}`),
+};
+
+export const cmsService = {
+  createFaq: (data) => apiClient.post("/cms/faqs", data),
+  updateFaq: (id, data) => apiClient.put(`/cms/faqs/${id}`, data),
+  deleteFaq: (id) => apiClient.delete(`/cms/faqs/${id}`),
+
+  createBlog: (data) => apiClient.post("/cms/blogs", data),
+  updateBlog: (id, data) => apiClient.put(`/cms/blogs/${id}`, data),
+  deleteBlog: (id) => apiClient.delete(`/cms/blogs/${id}`),
+
+  createTestimonial: (data) => apiClient.post("/cms/testimonials", data),
+  updateTestimonial: (id, data) => apiClient.put(`/cms/testimonials/${id}`, data),
+  deleteTestimonial: (id) => apiClient.delete(`/cms/testimonials/${id}`),
+};
+
+export const settingsService = {
+  get: () => apiClient.get("/settings"),
+  update: (data) => apiClient.patch("/settings", data),
 };
 
 export const reportService = {
-  series: () =>
-    withFallback(
-      apiClient.get("/reports/series"),
-      () => respond(db.monthlySeries)
-    ),
+  series: () => apiClient.get("/reports/series"),
+  summary: () => apiClient.get("/reports/summary"),
 };
 
-// Synchronous formatters and lookup helpers
+// Synchronous formatters and lookup helpers using dynamic live cache
 export function nameOfCustomer(id) {
-  return db.customers.find((c) => c.id === id)?.name ?? "—";
+  if (!id) return "—";
+  return customerCache.get(id)?.name || "—";
 }
 export function nameOfAgent(id) {
-  return db.agents.find((a) => a.id === id)?.name ?? "Unassigned";
+  if (!id) return "Unassigned";
+  return agentCache.get(id)?.name || "Unassigned";
 }
 export function nameOfProduct(id) {
-  return db.products.find((p) => p.id === id)?.name ?? "—";
+  if (!id) return "—";
+  return productCache.get(id)?.name || "—";
 }
 export function nameOfCompany(id) {
-  return db.companies.find((c) => c.id === id)?.name ?? "—";
+  if (!id) return "—";
+  return companyCache.get(id)?.name || "—";
 }
 export function policyByIdSync(id) {
-  return db.policies.find((p) => p.id === id) ?? null;
+  if (!id) return null;
+  return policyCache.get(id) || null;
 }
 export function policyNumberOf(id) {
-  return db.policies.find((p) => p.id === id)?.policyNumber ?? "—";
+  if (!id) return "—";
+  return policyCache.get(id)?.policyNumber || "—";
 }

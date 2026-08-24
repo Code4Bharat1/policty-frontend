@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { enquiryService } from "@/services";
 
 const categories = ["Health", "Life & Term", "Motor", "Travel", "Home", "Business"];
 
@@ -22,7 +23,7 @@ export function EnquiryForm({ title = "Insurance enquiry" }) {
     if (values.name.trim().length < 2) e.name = "Please enter your full name.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) e.email = "Enter a valid email address.";
     if (!/^[6-9]\d{9}$/.test(values.phone.replace(/\D/g, "").slice(-10))) e.phone = "Enter a valid 10-digit mobile number.";
-    if (values.message.trim().length < 10) e.message = "Tell us a little more (at least 10 characters).";
+    if (values.message.trim().length < 5) e.message = "Tell us a little more (at least 5 characters).";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -31,10 +32,15 @@ export function EnquiryForm({ title = "Insurance enquiry" }) {
     event.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 550));
-    setLoading(false);
-    setValues({ name: "", email: "", phone: "", category: values.category, message: "" });
-    toast.success("Enquiry received", { description: "A licensed advisor will contact you within one working day." });
+    try {
+      await enquiryService.submit(values);
+      setValues({ name: "", email: "", phone: "", category: values.category, message: "" });
+      toast.success("Enquiry received", { description: "A licensed advisor will contact you within one working day." });
+    } catch (err) {
+      toast.error("Failed to submit enquiry", { description: err.message || "Please check your network connection." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
