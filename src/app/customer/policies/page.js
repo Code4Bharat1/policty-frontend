@@ -8,11 +8,13 @@ import { policyService, nameOfCompany } from "@/services";
 
 export default function CustomerPoliciesPage() {
   const { user } = useAuth();
-  const customerId = user?.linkedId;
+  const customerId = user?.linkedId || user?.id;
+  const scope = customerId ? { customerId } : {};
+
   const { data, isLoading } = useQuery({
     queryKey: ["policies", customerId],
-    queryFn: () => policyService.list({ customerId: customerId ?? "" }),
-    enabled: !!customerId,
+    queryFn: () => policyService.list(scope),
+    enabled: !!user,
   });
 
   return (

@@ -11,11 +11,13 @@ import { inr } from "@/lib/format";
 
 export default function CustomerPaymentsPage() {
   const { user } = useAuth();
-  const customerId = user?.linkedId;
+  const customerId = user?.linkedId || user?.id;
+  const scope = customerId ? { customerId } : {};
+
   const { data, isLoading } = useQuery({
     queryKey: ["payments", customerId],
-    queryFn: () => paymentService.list({ customerId: customerId ?? "" }),
-    enabled: !!customerId,
+    queryFn: () => paymentService.list(scope),
+    enabled: !!user,
   });
 
   const paid = (data ?? []).filter((p) => p.status === "Successful");
@@ -24,7 +26,7 @@ export default function CustomerPaymentsPage() {
   return (
     <PortalPage role="CUSTOMER" title="Payments" description="Every premium, renewal and refund transaction on your account.">
       <StatGrid>
-        <StatCard label="Total paid" value={inr(paid.reduce((s, p) => s + p.amount, 0), true)} icon={IndianRupee} tone="success" />
+        <StatCard label="Total paid" value={inr(paid.reduce((s, p) => s + (p.amount || 0), 0), true)} icon={IndianRupee} tone="success" />
         <StatCard label="Successful payments" value={paid.length} icon={CreditCard} />
         <StatCard label="Pending" value={pending.length} icon={RefreshCw} tone="warning" />
         <StatCard label="Refunds" value={(data ?? []).filter((p) => p.type === "Refund").length} icon={RefreshCw} />

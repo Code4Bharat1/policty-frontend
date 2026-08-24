@@ -14,28 +14,42 @@ import { formatDate, inr } from "@/lib/format";
 
 export default function CustomerDashboardPage() {
   const { user } = useAuth();
-  const customerId = user?.linkedId;
-  const scope = { customerId: customerId ?? "" };
+  const customerId = user?.linkedId || user?.id;
+  const scope = customerId ? { customerId } : {};
 
-  const { data: policies, isLoading } = useQuery({ queryKey: ["policies", customerId], queryFn: () => policyService.list(scope), enabled: !!customerId });
-  const { data: claims } = useQuery({ queryKey: ["claims", customerId], queryFn: () => claimService.list(scope), enabled: !!customerId });
-  const { data: payments } = useQuery({ queryKey: ["payments", customerId], queryFn: () => paymentService.list(scope), enabled: !!customerId });
+  const { data: policies, isLoading } = useQuery({
+    queryKey: ["policies", customerId],
+    queryFn: () => policyService.list(scope),
+    enabled: !!user,
+  });
+
+  const { data: claims } = useQuery({
+    queryKey: ["claims", customerId],
+    queryFn: () => claimService.list(scope),
+    enabled: !!user,
+  });
+
+  const { data: payments } = useQuery({
+    queryKey: ["payments", customerId],
+    queryFn: () => paymentService.list(scope),
+    enabled: !!user,
+  });
 
   const active = (policies ?? []).filter((p) => p.status === "Active");
   const renewals = (policies ?? []).filter((p) => p.status === "Expiring Soon" || p.status === "Expired");
   const openClaims = (claims ?? []).filter((c) => c.status !== "Settled" && c.status !== "Rejected");
-  const coverage = (policies ?? []).reduce((s, p) => s + p.sumInsured, 0);
+  const coverage = (policies ?? []).reduce((s, p) => s + (p.sumInsured || 0), 0);
 
   const series = (payments ?? [])
     .filter((p) => p.status === "Successful")
     .slice(0, 8)
-    .map((p) => ({ label: formatDate(p.date).slice(0, 6), amount: p.amount }))
+    .map((p) => ({ label: formatDate(p.date || p.createdAt).slice(0, 6), amount: p.amount || 0 }))
     .reverse();
 
   return (
     <PortalPage
       role="CUSTOMER"
-      eyebrow={`Welcome back, ${user?.name.split(" ")[0] ?? ""}`}
+      eyebrow={`Welcome back, ${user?.name ? user.name.split(" ")[0] : "Customer"}`}
       title="Your insurance at a glance"
       description="Cover, renewals, claims and payments across every policy you hold with Policy Care."
       actions={
@@ -54,7 +68,7 @@ export default function CustomerDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <SectionCard className="lg:col-span-2" title="Premium payments" description="Successful transactions over recent months.">
           {series.length === 0 ? (
-            <EmptyState icon={CreditCard} title="No payments yet" description="Your premium payments will be charted here." />
+            <EmptyState icon={CreditCard} title="No payments yet" description="Your premium payment transactions will be charted here." />
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">

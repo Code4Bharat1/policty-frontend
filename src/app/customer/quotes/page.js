@@ -10,11 +10,13 @@ import { quoteService, nameOfProduct } from "@/services";
 
 export default function CustomerQuotesPage() {
   const { user } = useAuth();
-  const customerId = user?.linkedId;
+  const customerId = user?.linkedId || user?.id;
+  const scope = customerId ? { customerId } : {};
+
   const { data, isLoading } = useQuery({
     queryKey: ["quotes", customerId],
-    queryFn: () => quoteService.list({ customerId: customerId ?? "" }),
-    enabled: !!customerId,
+    queryFn: () => quoteService.list(scope),
+    enabled: !!user,
   });
 
   return (

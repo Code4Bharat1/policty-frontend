@@ -11,11 +11,13 @@ import { daysUntil } from "@/lib/format";
 
 export default function CustomerRenewalsPage() {
   const { user } = useAuth();
-  const customerId = user?.linkedId;
+  const customerId = user?.linkedId || user?.id;
+  const scope = customerId ? { customerId } : {};
+
   const { data, isLoading } = useQuery({
     queryKey: ["renewals", customerId],
-    queryFn: () => policyService.renewals({ customerId: customerId ?? "" }),
-    enabled: !!customerId,
+    queryFn: () => policyService.renewals(scope),
+    enabled: !!user,
   });
 
   const columns = [
@@ -24,7 +26,7 @@ export default function CustomerRenewalsPage() {
       key: "action",
       header: "Action",
       cell: (r) => (
-        <Button size="sm" onClick={() => toast.success(`Renewal started for ${r.policyNumber}.`)}>
+        <Button size="sm" onClick={() => toast.success(`Renewal initiated for ${r.policyNumber}.`)}>
           {daysUntil(r.expiryDate) < 0 ? "Reinstate" : "Renew"}
         </Button>
       ),

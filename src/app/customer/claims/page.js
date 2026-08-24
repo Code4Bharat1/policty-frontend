@@ -16,12 +16,21 @@ import { claimService, policyService, policyNumberOf } from "@/services";
 
 export default function CustomerClaimsPage() {
   const { user } = useAuth();
-  const customerId = user?.linkedId;
+  const customerId = user?.linkedId || user?.id;
   const [open, setOpen] = useState(false);
-  const scope = { customerId: customerId ?? "" };
+  const scope = customerId ? { customerId } : {};
 
-  const { data, isLoading, refetch } = useQuery({ queryKey: ["claims", customerId], queryFn: () => claimService.list(scope), enabled: !!customerId });
-  const { data: policies } = useQuery({ queryKey: ["policies", customerId], queryFn: () => policyService.list(scope), enabled: !!customerId });
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["claims", customerId],
+    queryFn: () => claimService.list(scope),
+    enabled: !!user,
+  });
+
+  const { data: policies } = useQuery({
+    queryKey: ["policies", customerId],
+    queryFn: () => policyService.list(scope),
+    enabled: !!user,
+  });
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
 
@@ -32,7 +41,7 @@ export default function CustomerClaimsPage() {
         type: values.type,
         amount: parseFloat(values.amount),
         description: values.description,
-        customerId,
+        customerId: customerId || undefined,
       });
       toast.success(`Claim registered for ${policyNumberOf(values.policyId) || "your policy"}. Our desk will contact you within 24 hours.`);
       reset();

@@ -23,7 +23,7 @@ import { documentService } from "@/services";
 
 export default function CustomerDocumentsPage() {
   const { user } = useAuth();
-  const customerId = user?.linkedId;
+  const customerId = user?.linkedId || user?.id;
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [category, setCategory] = useState("Policy Documents");
@@ -33,7 +33,7 @@ export default function CustomerDocumentsPage() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["documents", customerId],
     queryFn: () => documentService.list(customerId ?? ""),
-    enabled: !!customerId,
+    enabled: !!user,
   });
 
   const handleUpload = async (e) => {

@@ -15,7 +15,7 @@ export default function ContactPage() {
           </p>
           <ul className="mt-8 space-y-4 text-sm">
             <li className="flex items-start gap-3"><Phone className="mt-0.5 size-4 text-accent" aria-hidden /><span><strong className="block">1800 200 4000</strong>Toll free, Mon–Sat</span></li>
-            <li className="flex items-start gap-3"><Mail className="mt-0.5 size-4 text-accent" aria-hidden /><span><strong className="block">care@policycare.demo</strong>Response within one working day</span></li>
+            <li className="flex items-start gap-3"><Mail className="mt-0.5 size-4 text-accent" aria-hidden /><span><strong className="block">care@policycare.in</strong>Response within one working day</span></li>
             <li className="flex items-start gap-3"><MapPin className="mt-0.5 size-4 text-accent" aria-hidden /><span><strong className="block">Mumbai head office</strong>Level 7, Trade Centre, Bandra Kurla Complex, Mumbai 400051</span></li>
           </ul>
         </div>

@@ -147,14 +147,14 @@ export function SiteLayout({ children }) {
             <h2 className="text-sm font-bold">Talk to us</h2>
             <ul className="mt-4 space-y-3 text-sm text-primary-foreground/75">
               <li className="flex items-center gap-2"><Phone className="size-4" aria-hidden /> 1800 200 4000</li>
-              <li className="flex items-center gap-2"><Mail className="size-4" aria-hidden /> care@policycare.demo</li>
+              <li className="flex items-center gap-2"><Mail className="size-4" aria-hidden /> care@policycare.in</li>
               <li className="flex items-start gap-2"><MapPin className="mt-0.5 size-4" aria-hidden /> Level 7, Trade Centre, Bandra Kurla Complex, Mumbai 400051</li>
             </ul>
           </div>
         </div>
         <div className="border-t border-primary-foreground/15">
           <p className="mx-auto w-full max-w-7xl px-4 py-5 text-xs text-primary-foreground/60 lg:px-8">
-            © 2026 Policy Care. Demonstration product with simulated data. Insurance is the subject matter of solicitation.
+            © 2026 Policy Care. All rights reserved. Insurance is the subject matter of solicitation.
           </p>
         </div>
       </footer>

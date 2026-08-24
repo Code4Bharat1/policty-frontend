@@ -52,14 +52,18 @@ export default function PolicyDetailPage() {
           </SectionCard>
           <div className="space-y-6">
             <SectionCard title="Nominees">
-              <ul className="space-y-3">
-                {data.nominees.map((n) => (
-                  <li key={n.name} className="rounded-lg border border-border p-3">
-                    <p className="text-sm font-semibold text-foreground">{n.name}</p>
-                    <p className="text-xs text-muted-foreground">{n.relation} · {n.share}% share</p>
-                  </li>
-                ))}
-              </ul>
+              {(data.nominees || []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">No nominees registered for this policy.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {(data.nominees || []).map((n, idx) => (
+                    <li key={n.name || idx} className="rounded-lg border border-border p-3">
+                      <p className="text-sm font-semibold text-foreground">{n.name}</p>
+                      <p className="text-xs text-muted-foreground">{n.relation} · {n.share}% share</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </SectionCard>
             <SectionCard title="Quick actions">
               <div className="grid gap-2">

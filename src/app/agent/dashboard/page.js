@@ -15,8 +15,8 @@ const stageColors = ["var(--color-secondary)", "var(--color-accent)", "var(--col
 
 export default function AgentDashboardPage() {
   const { user } = useAuth();
-  const agentId = user?.linkedId ?? "";
-  const enabled = !!agentId;
+  const agentId = user?.linkedId || user?.id || "";
+  const enabled = !!user;
 
   const { data: leads } = useQuery({ queryKey: ["leads", agentId], queryFn: () => leadService.list(agentId), enabled });
   const { data: policies } = useQuery({ queryKey: ["agent-policies", agentId], queryFn: () => policyService.list({ agentId }), enabled });
@@ -41,7 +41,7 @@ export default function AgentDashboardPage() {
   return (
     <PortalPage
       role="AGENT"
-      eyebrow={`Hello, ${user?.name.split(" ")[0] ?? ""}`}
+      eyebrow={`Hello, ${user?.name ? user.name.split(" ")[0] : "Advisor"}`}
       title="Advisor dashboard"
       description="Your pipeline, portfolio and earnings at a glance."
       actions={<Button asChild><Link href="/agent/leads">Manage leads</Link></Button>}
@@ -49,8 +49,8 @@ export default function AgentDashboardPage() {
       <StatGrid>
         <StatCard label="Customers" value={customers?.length ?? 0} icon={Users} hint="Assigned to you" />
         <StatCard label="Active leads" value={(leads ?? []).filter((l) => l.stage !== "Converted" && l.stage !== "Lost").length} icon={Target} tone="accent" hint={`${leads?.length ?? 0} total leads`} />
-        <StatCard label="Policies sold" value={policies?.length ?? 0} icon={Shield} tone="success" hint={inr((policies ?? []).reduce((s, p) => s + p.premium, 0), true) + " premium"} />
-        <StatCard label="Commission pending" value={inr(pending.reduce((s, c) => s + c.amount, 0), true)} icon={Percent} tone="warning" hint={`${pending.length} entries`} />
+        <StatCard label="Policies sold" value={policies?.length ?? 0} icon={Shield} tone="success" hint={inr((policies ?? []).reduce((s, p) => s + (p.premium || 0), 0), true) + " premium"} />
+        <StatCard label="Commission pending" value={inr(pending.reduce((s, c) => s + (c.amount || 0), 0), true)} icon={Percent} tone="warning" hint={`${pending.length} entries`} />
       </StatGrid>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -94,30 +94,38 @@ export default function AgentDashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard title="Today's follow-ups" action={<Link href="/agent/followups" className="text-xs font-semibold text-secondary hover:underline">View all</Link>}>
-          <ul className="divide-y divide-border">
-            {(followUps ?? []).slice(0, 5).map((f) => (
-              <li key={f.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{f.title}</p>
-                  <p className="text-xs text-muted-foreground">{f.type} · {formatDate(f.date)} at {f.time}</p>
-                </div>
-                <StatusBadge status={f.status} />
-              </li>
-            ))}
-          </ul>
+          {(followUps ?? []).length === 0 ? (
+            <EmptyState icon={Target} title="No pending follow-ups" description="All tasks are up to date." />
+          ) : (
+            <ul className="divide-y divide-border">
+              {(followUps ?? []).slice(0, 5).map((f) => (
+                <li key={f.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{f.title}</p>
+                    <p className="text-xs text-muted-foreground">{f.type} · {formatDate(f.date)} at {f.time}</p>
+                  </div>
+                  <StatusBadge status={f.status} />
+                </li>
+              ))}
+            </ul>
+          )}
         </SectionCard>
         <SectionCard title="Hot leads" action={<Link href="/agent/leads" className="text-xs font-semibold text-secondary hover:underline">View all</Link>}>
-          <ul className="divide-y divide-border">
-            {(leads ?? []).filter((l) => l.priority === "High").slice(0, 5).map((l) => (
-              <li key={l.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{l.name}</p>
-                  <p className="text-xs capitalize text-muted-foreground">{l.interest} · {inr(l.estimatedPremium)}</p>
-                </div>
-                <StatusBadge status={l.stage} />
-              </li>
-            ))}
-          </ul>
+          {(leads ?? []).length === 0 ? (
+            <EmptyState icon={Target} title="No active leads" description="New prospect enquiries will appear here." />
+          ) : (
+            <ul className="divide-y divide-border">
+              {(leads ?? []).filter((l) => l.priority === "High").slice(0, 5).map((l) => (
+                <li key={l.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{l.name}</p>
+                    <p className="text-xs capitalize text-muted-foreground">{l.interest} · {inr(l.estimatedPremium)}</p>
+                  </div>
+                  <StatusBadge status={l.stage} />
+                </li>
+              ))}
+            </ul>
+          )}
         </SectionCard>
       </div>
     </PortalPage>

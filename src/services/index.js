@@ -4,7 +4,13 @@ import { apiClient } from "./apiClient";
 const customerCache = new Map();
 const agentCache = new Map();
 const productCache = new Map();
-const companyCache = new Map();
+const companyCache = new Map([
+  ["comp-hdfc", { id: "comp-hdfc", name: "HDFC ERGO General Insurance", shortName: "HDFC ERGO" }],
+  ["comp-icici", { id: "comp-icici", name: "ICICI Lombard General Insurance", shortName: "ICICI Lombard" }],
+  ["comp-star", { id: "comp-star", name: "Star Health & Allied Insurance", shortName: "Star Health" }],
+  ["comp-tata", { id: "comp-tata", name: "Tata AIG General Insurance", shortName: "Tata AIG" }],
+  ["comp-care", { id: "comp-care", name: "Care Health Insurance", shortName: "Care Health" }],
+]);
 const policyCache = new Map();
 
 function registerEntities(items, cache) {

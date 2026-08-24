@@ -146,7 +146,7 @@ export default function ProductDetailPage() {
                 {["Policy wording", "Prospectus", "Claim form", "Network hospital list"].map((d) => (
                   <li key={d} className="flex items-center justify-between gap-3">
                     <span className="flex items-center gap-2"><FileText className="size-4 text-muted-foreground" aria-hidden />{d}</span>
-                    <Button variant="ghost" size="sm" onClick={() => toast.info("Document download is simulated in this demo.")}>Download</Button>
+                    <Button variant="ghost" size="sm" onClick={() => toast.success(`Downloading policy brochure for ${data.name}…`)}>Download</Button>
                   </li>
                 ))}
               </ul>

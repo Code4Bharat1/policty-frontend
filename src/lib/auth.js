@@ -63,6 +63,26 @@ export function AuthProvider({ children }) {
     return res.user;
   }, []);
 
+  const sendOtp = useCallback(async (email) => {
+    return apiClient.post("/auth/send-otp", { email });
+  }, []);
+
+  const verifyOtp = useCallback(async (email, otp) => {
+    const res = await apiClient.post("/auth/verify-otp", { email, otp });
+    if (!res || !res.user || !res.token) {
+      throw new Error("Invalid response from authentication server");
+    }
+
+    window.localStorage.setItem(TOKEN_KEY, res.token);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(res.user));
+    setUser(res.user);
+    return res.user;
+  }, []);
+
+  const resendOtp = useCallback(async (email) => {
+    return apiClient.post("/auth/resend-otp", { email });
+  }, []);
+
   const signOut = useCallback(() => {
     window.localStorage.removeItem(STORAGE_KEY);
     window.localStorage.removeItem(TOKEN_KEY);
@@ -74,7 +94,11 @@ export function AuthProvider({ children }) {
     [user]
   );
 
-  const value = useMemo(() => ({ user, ready, signIn, signOut, can }), [user, ready, signIn, signOut, can]);
+  const value = useMemo(
+    () => ({ user, ready, signIn, sendOtp, verifyOtp, resendOtp, signOut, can }),
+    [user, ready, signIn, sendOtp, verifyOtp, resendOtp, signOut, can]
+  );
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

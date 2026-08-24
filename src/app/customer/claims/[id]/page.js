@@ -45,11 +45,15 @@ export default function ClaimDetailPage() {
               <p className="mt-5 text-sm text-muted-foreground">{data.description}</p>
             </SectionCard>
             <SectionCard title="Assessor remarks">
-              <p className="text-sm text-muted-foreground">{data.remarks}</p>
+              <p className="text-sm text-muted-foreground">{data.remarks || "Under assessment by the claims desk."}</p>
             </SectionCard>
           </div>
           <SectionCard title="Claim timeline" description="Live status of your assessment.">
-            <Timeline items={data.timeline.map((t) => ({ label: t.label, date: formatDate(t.date), done: t.done, note: t.note }))} />
+            {(data.timeline || []).length === 0 ? (
+              <p className="text-xs text-muted-foreground">Timeline will update as our desk processes your claim.</p>
+            ) : (
+              <Timeline items={(data.timeline || []).map((t) => ({ label: t.label, date: formatDate(t.date), done: t.done, note: t.note }))} />
+            )}
           </SectionCard>
         </div>
       )}
