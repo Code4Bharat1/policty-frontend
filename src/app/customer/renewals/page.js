@@ -1,6 +1,6 @@
 "use client";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { PortalPage } from "@/components/app/portal-page";
 import { DataTable } from "@/components/app/data-table";
 import { policyColumns } from "@/components/app/columns";
@@ -26,15 +26,23 @@ export default function CustomerRenewalsPage() {
       key: "action",
       header: "Action",
       cell: (r) => (
-        <Button size="sm" onClick={() => toast.success(`Renewal initiated for ${r.policyNumber}.`)}>
-          {daysUntil(r.expiryDate) < 0 ? "Reinstate" : "Renew"}
+        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" asChild>
+          <Link
+            href={`/checkout?productId=${r.productId || "PR-1001"}&planName=${encodeURIComponent(r.planName)}&sumInsured=${r.sumInsured}&premium=${r.premium}&category=${r.category}&isRenewal=true`}
+          >
+            {daysUntil(r.expiryDate) < 0 ? "Reinstate" : "⚡ Renew Online"}
+          </Link>
         </Button>
       ),
     },
   ];
 
   return (
-    <PortalPage role="CUSTOMER" title="Renewals" description="Policies expiring soon or already lapsed. Renew before expiry to retain continuity benefits.">
+    <PortalPage
+      role="CUSTOMER"
+      title="Renewals"
+      description="Policies expiring soon or already lapsed. Renew before expiry to retain continuity benefits."
+    >
       <DataTable
         data={data}
         loading={isLoading}

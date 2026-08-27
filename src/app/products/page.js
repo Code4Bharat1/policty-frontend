@@ -141,12 +141,17 @@ function ProductsContent() {
                       <dd className="text-base font-bold">{inr(p.maxCoverage, true)}</dd>
                     </div>
                   </dl>
-                  <div className="mt-5 flex gap-2">
-                    <Button className="flex-1" asChild>
-                      <Link href={`/products/${p.id}`}>Get quote <ArrowRight className="size-4" aria-hidden /></Link>
+                  <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                    <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" asChild>
+                      <Link href={`/checkout?productId=${p.id}&category=${p.category}&sumInsured=${p.maxCoverage}&premium=${p.minPremium}`}>
+                        Buy Online
+                      </Link>
                     </Button>
-                    <Button variant={compare.includes(p.id) ? "secondary" : "outline"} onClick={() => toggleCompare(p.id)}>
-                      <Scale className="size-4" aria-hidden /> {compare.includes(p.id) ? "Added" : "Compare"}
+                    <Button variant="outline" className="flex-1" asChild>
+                      <Link href={`/products/${p.id}`}>Details <ArrowRight className="size-4" aria-hidden /></Link>
+                    </Button>
+                    <Button variant={compare.includes(p.id) ? "secondary" : "ghost"} size="icon" onClick={() => toggleCompare(p.id)} title="Compare plan">
+                      <Scale className="size-4" aria-hidden />
                     </Button>
                   </div>
                 </article>

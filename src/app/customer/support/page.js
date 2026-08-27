@@ -29,7 +29,7 @@ export default function CustomerSupportPage() {
         type: "Support Request",
       });
 
-      const refNumber = res?.id || res?.data?.id || "SR-" + Math.floor(1000 + Math.random() * 9000);
+      const refNumber = res?.id || res?.data?.id || "SR-1001";
       toast.success(`Service request registered (Ref: ${refNumber}). Our support desk will reach out within 24 hours.`);
       reset();
     } catch (err) {

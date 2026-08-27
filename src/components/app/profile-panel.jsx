@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,14 +16,14 @@ export function ProfilePanel({ extra }) {
   const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [saving, setSaving] = useState(false);
+  const [prevUser, setPrevUser] = useState(user);
 
-  useEffect(() => {
-    if (user) {
-      setName(user.name || "");
-      setEmail(user.email || "");
-      setPhone(user.phone || "");
-    }
-  }, [user]);
+  if (user && user !== prevUser) {
+    setPrevUser(user);
+    setName(user.name || "");
+    setEmail(user.email || "");
+    setPhone(user.phone || "");
+  }
 
   if (!user) return null;
 

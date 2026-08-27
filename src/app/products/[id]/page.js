@@ -146,7 +146,7 @@ export default function ProductDetailPage() {
                 {["Policy wording", "Prospectus", "Claim form", "Network hospital list"].map((d) => (
                   <li key={d} className="flex items-center justify-between gap-3">
                     <span className="flex items-center gap-2"><FileText className="size-4 text-muted-foreground" aria-hidden />{d}</span>
-                    <Button variant="ghost" size="sm" onClick={() => toast.success(`Downloading policy brochure for ${data.name}…`)}>Download</Button>
+                    <Button variant="ghost" size="sm" onClick={() => toast.success(`Downloading policy brochure for ${product.name}…`)}>Download</Button>
                   </li>
                 ))}
               </ul>
@@ -163,11 +163,16 @@ export default function ProductDetailPage() {
             <div className="flex justify-between"><dt className="text-muted-foreground">Add-ons ({addOns.length})</dt><dd className="font-semibold">{inr(addOnCost)}</dd></div>
             <div className="flex justify-between border-t border-border pt-2 text-base"><dt className="font-semibold">Estimated annual</dt><dd className="font-bold">{inr(plan.annualPremium + addOnCost)}</dd></div>
           </dl>
-          <p className="mt-3 text-xs text-muted-foreground">Indicative premium excluding GST. Final pricing is confirmed by the insurer after underwriting.</p>
-          <Button className="mt-5 w-full" onClick={requestQuote} disabled={submitting}>
-            {submitting ? "Submitting…" : "Get quote"}
+          <p className="mt-3 text-xs text-muted-foreground">Indicative premium excluding GST. Instant automated policy issuance upon checkout.</p>
+          <Button className="mt-5 w-full bg-emerald-600 hover:bg-emerald-700 text-white" asChild>
+            <Link href={`/checkout?productId=${product.id}&planName=${encodeURIComponent(plan.name)}&sumInsured=${plan.sumInsured}&premium=${plan.annualPremium + addOnCost}&category=${product.category}`}>
+              ⚡ Buy Policy Online
+            </Link>
           </Button>
-          <Button variant="outline" className="mt-2 w-full" asChild><Link href="/enquiry">Talk to an advisor</Link></Button>
+          <Button variant="outline" className="mt-2 w-full" onClick={requestQuote} disabled={submitting}>
+            {submitting ? "Submitting…" : "Request Quote Proposal"}
+          </Button>
+          <Button variant="ghost" className="mt-1 w-full text-xs text-muted-foreground" asChild><Link href="/enquiry">Talk to an advisor</Link></Button>
         </aside>
       </div>
     </SiteLayout>

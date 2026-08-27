@@ -5,9 +5,10 @@ export function OtpInput({ length = 6, value = "", onChange, disabled = false })
   const inputRefs = useRef([]);
 
   useEffect(() => {
-    // Auto-focus first empty input on mount
+    // Auto-focus first empty input on initial mount
     const firstEmpty = value.length < length ? value.length : 0;
     inputRefs.current[firstEmpty]?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (e, index) => {

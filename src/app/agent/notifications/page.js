@@ -4,8 +4,14 @@ import { NotificationList } from "@/components/app/notification-list";
 
 export default function AgentNotificationsPage() {
   return (
-    <PortalPage role="AGENT" title="Notifications" description="Assignments and alerts for your book of business.">
-      <NotificationList scope="AGENT" />
+    <PortalPage
+      role="AGENT"
+      title="Notification Center"
+      description="Lead allocations, client policy issuances, and commission payout alerts."
+    >
+      <div className="surface p-6 rounded-2xl">
+        <NotificationList scope="AGENT" />
+      </div>
     </PortalPage>
   );
 }

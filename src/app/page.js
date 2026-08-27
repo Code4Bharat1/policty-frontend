@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -57,12 +58,13 @@ export default function HomePage() {
             </dl>
           </div>
           <div className="relative">
-            <img
+            <Image
               src="/hero-advisor.jpg"
               alt="Insurance advisor reviewing a customer's policy portfolio on a laptop"
               className="w-full rounded-2xl border border-primary-foreground/15 object-cover shadow-raised"
               width={880}
               height={660}
+              priority
             />
           </div>
         </div>

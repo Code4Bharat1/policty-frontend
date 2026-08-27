@@ -13,7 +13,6 @@ import {
   EyeOff,
   MailCheck,
   ArrowRight,
-  Edit2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,12 +57,31 @@ export default function RegisterPage() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  // Auto-submit OTP when 6 digits are typed
-  useEffect(() => {
-    if (otpCode.length === 6 && step === 2 && !loading) {
-      handleVerifyOtp();
+  // 2. Verify Email OTP
+  const handleVerifyOtp = async (e, codeOverride) => {
+    if (e) e.preventDefault();
+    const code = (codeOverride || otpCode).trim();
+    if (code.length !== 6) {
+      setError("Please enter the complete 6-digit code.");
+      return;
     }
-  }, [otpCode]);
+
+    setError(null);
+    setLoading(true);
+    try {
+      await apiClient.post("/auth/verify-registration", {
+        email: form.email.trim().toLowerCase(),
+        otp: code,
+      });
+
+      toast.success("Account verified successfully! Please sign in with your email and password.");
+      router.push(`/login?verified=true&email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
+    } catch (err) {
+      setError(err.message || "Invalid or expired verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -132,41 +150,9 @@ export default function RegisterPage() {
       if (res?.devOtp) setDevOtpHint(res.devOtp);
       toast.success("Account created! Verification code sent to your email.");
       setStep(2);
-      setCountdown(60);
+      setCountdown(120);
     } catch (err) {
       setError(err.message || "Registration failed. Please check your information and try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 2. Verify Email OTP
-  const handleVerifyOtp = async (e) => {
-    if (e) e.preventDefault();
-    if (otpCode.length !== 6) {
-      setError("Please enter the complete 6-digit code.");
-      return;
-    }
-
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await apiClient.post("/auth/verify-registration", {
-        email: form.email.trim().toLowerCase(),
-        otp: otpCode.trim(),
-      });
-
-      if (res?.token && res?.user) {
-        window.localStorage.setItem("policycare.token", res.token);
-        window.localStorage.setItem("policycare.session", JSON.stringify(res.user));
-        toast.success(`Account verified! Welcome to Policy Care, ${res.user.name.split(" ")[0]}`);
-        router.replace(homeForRole[res.user.role] || "/customer/dashboard");
-      } else {
-        toast.success("Account verified successfully! Please sign in with your email and password.");
-        router.push(`/login?verified=true&email=${encodeURIComponent(form.email.trim())}`);
-      }
-    } catch (err) {
-      setError(err.message || "Invalid or expired verification code.");
     } finally {
       setLoading(false);
     }
@@ -181,7 +167,7 @@ export default function RegisterPage() {
       const res = await apiClient.post("/auth/resend-verification", {
         email: form.email.trim().toLowerCase(),
       });
-      setCountdown(60);
+      setCountdown(120);
       setOtpCode("");
       if (res?.devOtp) setDevOtpHint(res.devOtp);
       toast.success("A fresh 6-digit code has been sent to your email.");
@@ -437,19 +423,8 @@ export default function RegisterPage() {
               </p>
 
               <form onSubmit={handleVerifyOtp} className="mt-6 space-y-5" noValidate>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                <div className="text-xs text-muted-foreground mb-1">
                   <span>Enter 6-digit code</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep(1);
-                      setOtpCode("");
-                      setError(null);
-                    }}
-                    className="inline-flex items-center gap-1 text-secondary hover:underline font-medium"
-                  >
-                    <Edit2 className="size-3" /> Edit details
-                  </button>
                 </div>
 
                 <OtpInput
@@ -480,7 +455,7 @@ export default function RegisterPage() {
                 </Button>
 
                 <div className="text-center text-xs text-muted-foreground pt-2">
-                  Didn't receive the code?{" "}
+                  Didn&apos;t receive the code?{" "}
                   <button
                     type="button"
                     onClick={handleResendOtp}
@@ -491,7 +466,9 @@ export default function RegisterPage() {
                         : "text-secondary hover:underline cursor-pointer"
                     }`}
                   >
-                    {countdown > 0 ? `Resend in ${countdown}s` : "Resend code now"}
+                    {countdown > 0
+                      ? `Resend in ${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, "0")}`
+                      : "Resend code now"}
                   </button>
                 </div>
               </form>

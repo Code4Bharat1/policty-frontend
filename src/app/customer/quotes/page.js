@@ -19,6 +19,21 @@ export default function CustomerQuotesPage() {
     enabled: !!user,
   });
 
+  const columns = [
+    ...quoteColumns(),
+    {
+      key: "action",
+      header: "Action",
+      cell: (r) => (
+        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" asChild>
+          <Link href={`/checkout?productId=${r.productId}&sumInsured=${r.coverage}&premium=${r.premium}`}>
+            Accept &amp; Buy
+          </Link>
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <PortalPage
       role="CUSTOMER"
@@ -30,7 +45,7 @@ export default function CustomerQuotesPage() {
         data={data}
         loading={isLoading}
         rowKey={(r) => r.id}
-        columns={quoteColumns()}
+        columns={columns}
         searchKeys={(r) => `${r.quoteNumber} ${nameOfProduct(r.productId)} ${r.status}`}
         searchPlaceholder="Search quotes"
         exportable

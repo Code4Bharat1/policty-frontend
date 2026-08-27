@@ -1,7 +1,50 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
-export async function request(endpoint, options = {}) {
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+function subscribeTokenRefresh(cb) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshed(token) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
+
+async function performTokenRefresh() {
+  const currentRefreshToken =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("policycare.refreshToken")
+      : null;
+
+  const res = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ refreshToken: currentRefreshToken || undefined }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Refresh token expired");
+  }
+
+  const json = await res.json();
+  const newToken = json?.data?.accessToken || json?.data?.token;
+  const newRefreshToken = json?.data?.refreshToken;
+
+  if (typeof window !== "undefined" && newToken) {
+    window.localStorage.setItem("policycare.token", newToken);
+    if (newRefreshToken) {
+      window.localStorage.setItem("policycare.refreshToken", newRefreshToken);
+    }
+  }
+
+  return newToken;
+}
+
+export async function request(endpoint, options = {}, isRetry = false) {
   const token =
     typeof window !== "undefined"
       ? window.localStorage.getItem("policycare.token")
@@ -34,9 +77,50 @@ export async function request(endpoint, options = {}) {
     response = await fetch(url, {
       ...options,
       headers,
+      credentials: "include",
     });
   } catch (netErr) {
     throw new Error(`Network connection error: ${netErr.message}`);
+  }
+
+  // Handle 401 Unauthorized with Silent Auto-Refresh
+  const isAuthEndpoint =
+    endpoint.includes("/auth/login") ||
+    endpoint.includes("/auth/register") ||
+    endpoint.includes("/auth/refresh-token") ||
+    endpoint.includes("/auth/verify-registration");
+
+  if (response.status === 401 && !isRetry && !isAuthEndpoint && typeof window !== "undefined") {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        const newToken = await performTokenRefresh();
+        isRefreshing = false;
+        onRefreshed(newToken);
+        return request(endpoint, options, true);
+      } catch (refreshErr) {
+        isRefreshing = false;
+        refreshSubscribers = [];
+        window.localStorage.removeItem("policycare.token");
+        window.localStorage.removeItem("policycare.refreshToken");
+        window.localStorage.removeItem("policycare.session");
+        if (window.location.pathname !== "/login") {
+          window.location.href = `/login?session_expired=true`;
+        }
+        throw new Error("Your session has expired. Please sign in again.");
+      }
+    } else {
+      // Queue concurrent requests until refresh completes
+      return new Promise((resolve, reject) => {
+        subscribeTokenRefresh((newToken) => {
+          if (newToken) {
+            resolve(request(endpoint, options, true));
+          } else {
+            reject(new Error("Session expired"));
+          }
+        });
+      });
+    }
   }
 
   let json;

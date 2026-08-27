@@ -42,8 +42,12 @@ export default function CustomerInsurancePage() {
                 <span className="flex items-center gap-1 text-muted-foreground"><Star className="size-3.5 fill-current text-accent" aria-hidden />{p.rating.toFixed(1)}</span>
               </div>
               <div className="mt-4 flex gap-2">
-                <Button asChild size="sm" className="flex-1"><Link href={`/products/${p.id}`}>View plan</Link></Button>
-                <Button asChild size="sm" variant="outline" className="flex-1"><Link href="/enquiry">Get quote</Link></Button>
+                <Button asChild size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Link href={`/checkout?productId=${p.id}&category=${p.category}&sumInsured=${p.maxCoverage}&premium=${p.minPremium}`}>
+                    ⚡ Buy Online
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="flex-1"><Link href={`/products/${p.id}`}>View details</Link></Button>
               </div>
             </article>
           ))}

@@ -199,7 +199,7 @@ export default function AgentLeadsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="ld-pri">Priority</Label>
                   <select
@@ -226,6 +226,23 @@ export default function AgentLeadsPage() {
                     <option value="Contacted">Contacted</option>
                     <option value="Qualified">Qualified</option>
                     <option value="Quotation">Quotation</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="ld-src">Source</Label>
+                  <select
+                    id="ld-src"
+                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    value={form.source}
+                    onChange={(e) => setForm({ ...form, source: e.target.value })}
+                  >
+                    <option value="Direct Referral">Direct Referral</option>
+                    <option value="Referral">Referral</option>
+                    <option value="Website">Website</option>
+                    <option value="Walk-in">Walk-in</option>
+                    <option value="Campaign">Campaign</option>
+                    <option value="Call Centre">Call Centre</option>
                   </select>
                 </div>
               </div>
